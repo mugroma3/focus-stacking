@@ -120,6 +120,7 @@ void step_and_shoot(unsigned int shoot_period_ms, unsigned int steps_each_pictur
 //stop every action
 void stop(){
 	digitalWrite(pin_enable, HIGH); //disable motor
+	digitalWrite(pin_shoot, LOW);	//close trigger
 	current_h_action = NONE;
 }
 
@@ -176,7 +177,7 @@ void move(float vel_mm_sec, microstepping_t stepping_mode){
 //setup the shoot hardware
 void shoot(unsigned int shoot_period_ms){
 	/*set pins*/
-
+	digitalWrite(pin_shoot, LOW);
 	shooting_period_ms=shoot_period_ms;
 }
 
