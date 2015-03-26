@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include "Additional.h"
 #include <Wire.h>
+#include <TimerOne.h>
 
 #define runEvery(t) for(static uint16_t _lasttime; (uint16_t)((uint16_t)millis() - _lasttime) >= (t); _lasttime += (t))
 
@@ -84,13 +85,13 @@ unsigned int steps_done;
 
 //linear move in the home direction
 void move_home(){
-	move(-30, QUARTER);
+	move(-10, QUARTER);
 	current_h_action = MOVE;
 }
 
 //linear move in the end direction
 void move_end(){
-	move(30, SIXTEENTH);
+	move(10, QUARTER);
 	current_h_action = MOVE;
 }
 
@@ -98,12 +99,19 @@ void move_end(){
 const float step_length[] = {(3./20.), (3./20.)/(1<< HALF), (3./20.)/(1<< QUARTER), (3./20.)/(1<<EIGHTH), (3./20.)/(1<<SIXTEENTH)};
 
 //setup the main use case and initiate it
-void step_and_shoot(unsigned int shoot_idle_period_ms, unsigned int shoot_period_ms, unsigned int steps_each_picture, microstepping_t mode, unsigned int repetitions){
-	float shoot_vel=step_length[mode] / shoot_period_ms;
-	move(shoot_vel, mode);
-	shoot(shoot_period_ms);
-	shoot_to_be_done=repetitions;
-	steps_for_picture=steps_each_picture;
+void step_and_shoot(unsigned int shoots, unsigned int exp_ms, unsigned int mm, unsigned int delay_ms){
+
+//void step_and_shoot(unsigned int shoot_idle_period_ms, unsigned int shoot_period_ms, unsigned int steps_each_picture, microstepping_t mode, unsigned int repetitions){
+//	float shoot_vel=step_length[mode] / shoot_idle_period_ms;
+
+
+	float shoot_vel= 1000*step_length[QUARTER] / delay_ms;
+
+	move(shoot_vel, QUARTER);
+	shoot(exp_ms);
+	shoot_to_be_done=shoots;
+	float mm_picture = ((float) mm )/(shoots -1);
+	steps_for_picture=(unsigned int)floor(mm_picture/step_length[QUARTER]);
 
 	current_h_action = STEP_AND_SHOOT_FASE_1;
 }
@@ -267,12 +275,12 @@ void move_screen(){
 
 			//changeScreen shoots
 			if(but_num==3){
-				current_menu=NUM_SHOOTS;
+				current_menu=START_CAPTURE;
 				enteringState=true;
 			}
 
 			if(but_num==4){
-				current_menu=START_CAPTURE;
+				current_menu=NUM_SHOOTS;
 				enteringState=true;
 			}
 
@@ -298,19 +306,26 @@ void move_screen(){
 
 }
 
-/*
+
 const char plus_string[] PROGMEM= "+";
 const char minus_string[] PROGMEM= "-";
 
-*/
-char val_representation [6]; //good for uint_16 (5char + null termintator)
 
+char val_representation [6]; //good for uint_16 (5char + null termintator)
+const char space_string[] = " ";
+void sps_printval(unsigned int val){
+	utoa(val, val_representation, 10); 
+	int len = strlen(val_representation);
+	for(int i=1; i<6-len; i++){
+		lcd.lcdGoToXY(i, 1);
+		lcd.lcdWrite(fr(space_string));	
+	}
+	lcd.lcdGoToXY(6-len, 1);	lcd.lcdWrite(val_representation);
+}
 void single_param_screen(param_display* p){
-/*
-#define PRINT_VAL utoa(p->val, val_representation, 10); lcd.lcdGoToXY(6-strlen(val_representation), 1);	lcd.lcdWrite(val_representation);
 	if(enteringState){
 		lcd.lcdClear();
-		PRINT_VAL
+		sps_printval(p->val);
 		lcd.lcdGoToXY(7,1);
 		lcd.lcdWrite(fr(p->label));
 		lcd.lcdGoToXY(1,2);
@@ -350,12 +365,12 @@ void single_param_screen(param_display* p){
 			but_num=1;
 
 			++(p->val);
-			PRINT_VAL
+			sps_printval(p->val);
 		}else if(BUT_2(buttons)){
 			but_num=2;
 
 			--(p->val);
-			PRINT_VAL
+			sps_printval(p->val);
 		}else if(BUT_3(buttons)){
 			but_num=3;
 			//donothing
@@ -370,30 +385,38 @@ void single_param_screen(param_display* p){
 		if(counter%10 == 0){
 			if(BUT_1(buttons)){
 				(p->val)+=10;
-				PRINT_VAL
+				sps_printval(p->val);
 			}else if(BUT_2(buttons)){
 				(p->val)-=10;
-				PRINT_VAL
+				sps_printval(p->val);
 			}
 		}
 	}
-	*/
+	
 }
 
 
-/*
+
 const char start_string[] PROGMEM= "Start";
 const char ellipses_string[] PROGMEM= "...";
 display_menu_t start_capture_current_value=NUM_SHOOTS;
+
+void scs_printval(struct param_display* p){
+	utoa(p->val, val_representation, 10); 
+	int len = strlen(val_representation);
+	for(int i=1; i<6-len; i++){
+		lcd.lcdGoToXY(i, 1);
+		lcd.lcdWrite(fr(space_string));	
+	}
+	lcd.lcdGoToXY(6-len, 1);	lcd.lcdWrite(val_representation);
+	lcd.lcdGoToXY(6, 1); lcd.lcdWrite(fr(p->short_label));
+}
 void start_capture_screen(){
-#define PRINT_PARAM(p) utoa((p.val), val_representation, 10); lcd.lcdGoToXY(6-strlen(val_representation), 1); lcd.lcdWrite(val_representation); lcd.lcdGoToXY(6, 1); lcd.lcdWrite(fr(p.short_label));
 	if(enteringState){
 		lcd.lcdClear();
 		lcd.lcdGoToXY(14,1);
 		lcd.lcdWrite(fr(ellipses_string));
 
-		lcd.lcdGoToXY(1,2);
-		lcd.lcdWrite(fr(asterisk));
 		lcd.lcdGoToXY(2,2);
 		lcd.lcdWrite(fr(start_string));
 		lcd.lcdGoToXY(11,2);
@@ -403,30 +426,33 @@ void start_capture_screen(){
 		enteringState=0;
 		counter=0;
 
-		PRINT_PARAM(shoots_param)
+		scs_printval(&shoots_param);
 	}
 	++counter;
 
-	if(counter%40 ==0){
-		struct param_display p;
+	if(counter%60 ==0){
+		struct param_display* p;
 		switch(start_capture_current_value){
 			case NUM_SHOOTS:
-				p=shoots_param;
+				p=&shoots_param;
+				start_capture_current_value=p->next;
 			break;
 			case ESPOSITION_TIME:
-				p=exposition_param;
+				p=&exposition_param;
+				start_capture_current_value=p->next;
 			break;
 			case MM_CAPTURE:
-				p=mm_param;
+				p=&mm_param;
+				start_capture_current_value=p->next;
 			break;
 			case DELAY_SHOT:
-				p=delay_param;
+				p=&delay_param;
+				start_capture_current_value=NUM_SHOOTS;
 			break;
 			default:
 			break;
 		}
-		start_capture_current_value=p.next;
-		PRINT_PARAM(p)
+		scs_printval(p);
 	}
 
 	int buttons = lcd.readButtons();
@@ -435,7 +461,8 @@ void start_capture_screen(){
 			//fire event
 
 			//start capturing
-			if(but_num==1){
+			if(but_num==1|| but_num==2){
+				step_and_shoot(shoots_param.val, exposition_param.val, mm_param.val, delay_param.val);
 				current_menu=CAPTURING;
 				enteringState=true;
 			}
@@ -457,6 +484,9 @@ void start_capture_screen(){
 		if(BUT_1(buttons)){
 			but_num=1;
 			//do no
+		}else if(BUT_2(buttons)){
+			but_num=2;
+			//donothing
 		}else if(BUT_3(buttons)){
 			but_num=3;
 			//donothing
@@ -467,18 +497,28 @@ void start_capture_screen(){
 	}
 
 }
-*/
+
 
 
 //const char pause_string[] = "pause";
 const char cancel_string[] PROGMEM= "abort";
 const char of_string[] PROGMEM= "of";
 
-unsigned int shoots_to_be_done_capture_screen=200;
-unsigned int done_capture_screen=24;
+unsigned int done_capture_screen=0;
+
+void cs_printval(unsigned int val, unsigned int pos){
+	utoa(val, val_representation, 10); 
+	int len =strlen(val_representation);
+	for(int i=pos-5; i<pos-len; i++){
+		lcd.lcdGoToXY(i, 1);
+		lcd.lcdWrite(fr(space_string));	
+	}
+
+	lcd.lcdGoToXY(pos-len, 1); 
+	lcd.lcdWrite(val_representation);
+}
 
 void capturing_screen(){
-#define PRINT_NUM(num, pos) utoa((num), val_representation, 10); lcd.lcdGoToXY(pos-strlen(val_representation), 1); lcd.lcdWrite(val_representation);
 	if(enteringState){
 		lcd.lcdClear();
 
@@ -491,17 +531,18 @@ void capturing_screen(){
 		lcd.lcdWrite(fr(of_string));
 
 		enteringState=0;
-		PRINT_NUM(shoots_to_be_done_capture_screen, 16);
-		PRINT_NUM(done_capture_screen, 7);
-
+		done_capture_screen=0;
+		cs_printval(shoots_param.val, 16);
+		cs_printval(done_capture_screen, 7);
 
 		//start capture
 	}
 	
 //update num
-	if(false){
+	if(shoots_param.val-shoot_to_be_done != done_capture_screen){
 	//update_val
-		PRINT_NUM(done_capture_screen, 7);
+		done_capture_screen=shoots_param.val-shoot_to_be_done;
+		cs_printval(done_capture_screen, 7);
 	}
 
 	int buttons = lcd.readButtons();
@@ -509,7 +550,7 @@ void capturing_screen(){
 			//on falling edge
 			/*fire event*/
 
-			if(but_num==1){
+			if(but_num==1||but_num==2){
 				current_menu=MOVE_SCREEN;
 				enteringState=true;
 
@@ -520,10 +561,13 @@ void capturing_screen(){
 			but_num=0;
 	}else if(!but_num){ //free state
 		//capture a button
-		if(BUT_4(buttons)){
-			but_num=4;
+		if(BUT_1(buttons)){
+			but_num=1;
 			//donothing
-		}
+		}else if(BUT_2(buttons)){
+			but_num=2;
+			//donothing
+		} 
 	}
 
 }
@@ -538,6 +582,7 @@ void setup() {
 
 }
 
+unsigned long time_for_display=0;
 void loop() {
 	// hardware actions
 	switch(current_h_action){
@@ -568,13 +613,12 @@ void loop() {
 			break;
 	}
 
-
-	runEvery(refreshPeriod){
+	if(count_elapsed(time_for_display, millis())>100){
 		switch(current_menu){
 			case MOVE_SCREEN:
 				move_screen();
 			break;
-/*			case NUM_SHOOTS:
+			case NUM_SHOOTS:
 				single_param_screen(&shoots_param);
 			break;
 			case ESPOSITION_TIME:
@@ -589,13 +633,14 @@ void loop() {
 			case START_CAPTURE:
 				start_capture_screen();
 			break;
-*/
+
 			case CAPTURING:
 				capturing_screen();
 			break;
 			default:
 			break;
 		}
+		time_for_display=millis();
 	}
 
 }
