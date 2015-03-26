@@ -16,9 +16,7 @@
 //in which state the hardware-controlling state machine is in now
 hardware_action_t current_h_action = NONE;
 
-display_menu_t current_menu = MOVE_SCREEN;
-
-#define PROGMEM 
+display_menu_t current_menu = MAIN_SCREEN;
 
 LCD16x2 lcd;
 
@@ -26,12 +24,6 @@ void setupScreen(){
 	Wire.begin();
 	delay(270);
 	lcd.lcdClear();
-}
-
-
-//char progmembuf[17];
-char* fr(const char* str){
-	return  (char*) str;
 }
 
 //sleep & reset are wired HIGH
@@ -211,12 +203,6 @@ bool keep_shooting_if_due(unsigned long shooting_period_ms){
 	return counting_time;
 }
 
-
-
-const char leftArrow[] PROGMEM= "\x7f";
-const char rightArrow[] PROGMEM= "\x7e";
-const char asterisk[] PROGMEM= "\x2a";
-
 #define BUTS(buttons) !(buttons)
 #define BUT(buttons, num) !((buttons) & (0x01 << (num -1)))
 
@@ -226,35 +212,25 @@ const char asterisk[] PROGMEM= "\x2a";
 #define BUT_4(buttons) BUT((buttons), 4)
 
 
-const char move_string[] PROGMEM= "Move";
-const char home_string[] PROGMEM= "Home";
-const char end_string[] PROGMEM= "End";
-
-
 
 bool enteringState=true;
 int but_num=0;
-unsigned int counter=0;
 
-void move_screen(){
+void main_diplay(int buttons){
 	if(enteringState){
 		lcd.lcdClear();
-		lcd.lcdGoToXY(1,1);
-		lcd.lcdWrite(fr(move_string));
 		lcd.lcdGoToXY(1,2);
-		lcd.lcdWrite(fr(home_string));
+		lcd.lcdWrite("<");
 		lcd.lcdGoToXY(6,2);
-		lcd.lcdWrite(fr(end_string));
-		lcd.lcdGoToXY(11,2);
-		lcd.lcdWrite(fr(leftArrow));
-		lcd.lcdGoToXY(16,2);
-		lcd.lcdWrite(fr(rightArrow));
+		lcd.lcdWrite(">");
+
+		lcd.lcdGoToXY(12,2);
+		lcd.lcdWrite("Start");
 
 
-		enteringState=0;
+		enteringState=false;
 	}
 
-	int buttons = lcd.readButtons();
 	if(but_num && !BUT(buttons, but_num)){
 			//on falling edge
 			/*fire event*/
@@ -263,12 +239,6 @@ void move_screen(){
 			if(but_num==1||but_num==2){
 				stop();
 				//stop
-			}
-
-			//changeScreen shoots
-			if(but_num==3){
-				current_menu=NUM_SHOOTS;
-				enteringState=true;
 			}
 
 			if(but_num==4){
@@ -291,236 +261,6 @@ void move_screen(){
 			but_num=3;
 			//donothing
 		}else if(BUT_4(buttons)){
-			but_num=4;
-			//donothing
-		}
-	}
-
-}
-
-/*
-const char plus_string[] PROGMEM= "+";
-const char minus_string[] PROGMEM= "-";
-
-*/
-char val_representation [6]; //good for uint_16 (5char + null termintator)
-
-void single_param_screen(param_display* p){
-/*
-#define PRINT_VAL utoa(p->val, val_representation, 10); lcd.lcdGoToXY(6-strlen(val_representation), 1);	lcd.lcdWrite(val_representation);
-	if(enteringState){
-		lcd.lcdClear();
-		PRINT_VAL
-		lcd.lcdGoToXY(7,1);
-		lcd.lcdWrite(fr(p->label));
-		lcd.lcdGoToXY(1,2);
-		lcd.lcdWrite(fr(plus_string));
-		lcd.lcdGoToXY(6,2);
-		lcd.lcdWrite(fr(minus_string));
-		lcd.lcdGoToXY(11,2);
-		lcd.lcdWrite(fr(leftArrow));
-		lcd.lcdGoToXY(16,2);
-		lcd.lcdWrite(fr(rightArrow));
-
-		enteringState=0;
-	}
-
-	counter++;
-
-	int buttons = lcd.readButtons();
-	if(but_num && !BUT(buttons, but_num)){
-			//on falling edge
-			//fire event
-
-			//changeScreen shoots
-			if(but_num==3){
-				current_menu=p->prev;
-				enteringState=true;
-			}
-
-			if(but_num==4){
-				current_menu=p->next;
-				enteringState=true;
-			}
-
-			but_num=0;
-	}else if(!but_num){ //free state
-		//capture a button
-		if(BUT_1(buttons)){
-			but_num=1;
-
-			++(p->val);
-			PRINT_VAL
-		}else if(BUT_2(buttons)){
-			but_num=2;
-
-			--(p->val);
-			PRINT_VAL
-		}else if(BUT_3(buttons)){
-			but_num=3;
-			//donothing
-		}else if(BUT_4(buttons)){
-			but_num=4;
-			//donothing
-		}
-
-		counter=0;
-
-	}else{	//pressing state
-		if(counter%10 == 0){
-			if(BUT_1(buttons)){
-				(p->val)+=10;
-				PRINT_VAL
-			}else if(BUT_2(buttons)){
-				(p->val)-=10;
-				PRINT_VAL
-			}
-		}
-	}
-	*/
-}
-
-
-/*
-const char start_string[] PROGMEM= "Start";
-const char ellipses_string[] PROGMEM= "...";
-display_menu_t start_capture_current_value=NUM_SHOOTS;
-void start_capture_screen(){
-#define PRINT_PARAM(p) utoa((p.val), val_representation, 10); lcd.lcdGoToXY(6-strlen(val_representation), 1); lcd.lcdWrite(val_representation); lcd.lcdGoToXY(6, 1); lcd.lcdWrite(fr(p.short_label));
-	if(enteringState){
-		lcd.lcdClear();
-		lcd.lcdGoToXY(14,1);
-		lcd.lcdWrite(fr(ellipses_string));
-
-		lcd.lcdGoToXY(1,2);
-		lcd.lcdWrite(fr(asterisk));
-		lcd.lcdGoToXY(2,2);
-		lcd.lcdWrite(fr(start_string));
-		lcd.lcdGoToXY(11,2);
-		lcd.lcdWrite(fr(leftArrow));
-		lcd.lcdGoToXY(16,2);
-		lcd.lcdWrite(fr(rightArrow));
-		enteringState=0;
-		counter=0;
-
-		PRINT_PARAM(shoots_param)
-	}
-	++counter;
-
-	if(counter%40 ==0){
-		struct param_display p;
-		switch(start_capture_current_value){
-			case NUM_SHOOTS:
-				p=shoots_param;
-			break;
-			case ESPOSITION_TIME:
-				p=exposition_param;
-			break;
-			case MM_CAPTURE:
-				p=mm_param;
-			break;
-			case DELAY_SHOT:
-				p=delay_param;
-			break;
-			default:
-			break;
-		}
-		start_capture_current_value=p.next;
-		PRINT_PARAM(p)
-	}
-
-	int buttons = lcd.readButtons();
-	if(but_num && !BUT(buttons, but_num)){
-			//on falling edge
-			//fire event
-
-			//start capturing
-			if(but_num==1){
-				current_menu=CAPTURING;
-				enteringState=true;
-			}
-
-			//changeScreen
-			if(but_num==3){
-				current_menu=DELAY_SHOT;
-				enteringState=true;
-			}
-
-			if(but_num==4){
-				current_menu=MOVE_SCREEN;
-				enteringState=true;
-			}
-
-			but_num=0;
-	}else if(!but_num){ //free state
-		//capture a button
-		if(BUT_1(buttons)){
-			but_num=1;
-			//do no
-		}else if(BUT_3(buttons)){
-			but_num=3;
-			//donothing
-		}else if(BUT_4(buttons)){
-			but_num=4;
-			//donothing
-		}
-	}
-
-}
-*/
-
-
-//const char pause_string[] = "pause";
-const char cancel_string[] PROGMEM= "abort";
-const char of_string[] PROGMEM= "of";
-
-unsigned int shoots_to_be_done_capture_screen=200;
-unsigned int done_capture_screen=24;
-
-void capturing_screen(){
-#define PRINT_NUM(num, pos) utoa((num), val_representation, 10); lcd.lcdGoToXY(pos-strlen(val_representation), 1); lcd.lcdWrite(val_representation);
-	if(enteringState){
-		lcd.lcdClear();
-
-
-		lcd.lcdGoToXY(1,2);
-		lcd.lcdWrite(fr(cancel_string));
-//		lcd.lcdGoToXY(11,2);
-//		lcd.lcdWrite((char*)pause_string);
-		lcd.lcdGoToXY(8,1);
-		lcd.lcdWrite(fr(of_string));
-
-		enteringState=0;
-		PRINT_NUM(shoots_to_be_done_capture_screen, 16);
-		PRINT_NUM(done_capture_screen, 7);
-
-
-		//start capture
-	}
-	
-//update num
-	if(false){
-	//update_val
-		PRINT_NUM(done_capture_screen, 7);
-	}
-
-	int buttons = lcd.readButtons();
-	if(but_num && !BUT(buttons, but_num)){
-			//on falling edge
-			/*fire event*/
-
-			if(but_num==1){
-				current_menu=MOVE_SCREEN;
-				enteringState=true;
-
-				stop();
-				//cancel capture
-			}
-
-			but_num=0;
-	}else if(!but_num){ //free state
-		//capture a button
-		if(BUT_4(buttons)){
 			but_num=4;
 			//donothing
 		}
@@ -568,34 +308,12 @@ void loop() {
 			break;
 	}
 
+	int buttons;
+	runEvery(200){
+		Serial.print(F("Buttons: "));
+		Serial.println(buttons=lcd.readButtons());
 
-	runEvery(refreshPeriod){
-		switch(current_menu){
-			case MOVE_SCREEN:
-				move_screen();
-			break;
-/*			case NUM_SHOOTS:
-				single_param_screen(&shoots_param);
-			break;
-			case ESPOSITION_TIME:
-				single_param_screen(&exposition_param);
-			break;
-			case MM_CAPTURE:
-				single_param_screen(&mm_param);
-			break;
-			case DELAY_SHOT:
-				single_param_screen(&delay_param);
-			break;
-			case START_CAPTURE:
-				start_capture_screen();
-			break;
-*/
-			case CAPTURING:
-				capturing_screen();
-			break;
-			default:
-			break;
-		}
+		main_diplay(buttons);
 	}
 
 }
