@@ -1,6 +1,6 @@
 //#include <avr/pgmspace.h>
 
-#include <LCD16x2.h>
+#include "LCD16x2.h"
 #include <math.h>
 #include <stdlib.h>
 #include "Additional.h"
@@ -263,6 +263,7 @@ void move_screen(){
 	}
 
 	int buttons = lcd.readButtons();
+	if(buttons==0xff) return;
 	if(but_num && !BUT(buttons, but_num)){
 			//on falling edge
 			/*fire event*/
@@ -343,6 +344,8 @@ void single_param_screen(param_display* p){
 	counter++;
 
 	int buttons = lcd.readButtons();
+	if(buttons==0xff) return;
+
 	if(but_num && !BUT(buttons, but_num)){
 			//on falling edge
 			//fire event
@@ -456,6 +459,8 @@ void start_capture_screen(){
 	}
 
 	int buttons = lcd.readButtons();
+	if(buttons==0xff) return;
+
 	if(but_num && !BUT(buttons, but_num)){
 			//on falling edge
 			//fire event
@@ -546,6 +551,8 @@ void capturing_screen(){
 	}
 
 	int buttons = lcd.readButtons();
+	if(buttons==0xff) return;
+
 	if(but_num && !BUT(buttons, but_num)){
 			//on falling edge
 			/*fire event*/
@@ -613,7 +620,9 @@ void loop() {
 			break;
 	}
 
-	if(count_elapsed(time_for_display, millis())>100){
+	lcd.lcdUpdate();
+
+	if(count_elapsed(time_for_display, millis())>20){
 		switch(current_menu){
 			case MOVE_SCREEN:
 				move_screen();
