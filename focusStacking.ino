@@ -34,13 +34,13 @@ char* fr(const char* str){
 //sleep & reset are wired HIGH
 //const int pin_reset = 0;
 //const int pin_sleep = 1;
-const int pin_ms1   = 3;
-const int pin_ms2   = 4;
+const int pin_enable= 9;
+const int pin_ms1   = 8;
+const int pin_ms2   = 6;
 const int pin_ms3   = 5;
-const int pin_enable= 6;
 
-const int pin_step  = 8;
-const int pin_dir   = 9;
+const int pin_step  = 4;
+const int pin_dir   = 3;
 void setupDriver(){
 	pinMode(pin_ms1, OUTPUT);
 	pinMode(pin_ms2, OUTPUT);
@@ -55,6 +55,8 @@ void setupDriver(){
 
 const int pin_shoot = 10;
 void setupCamera(){
+	pinMode(13, OUTPUT);
+	digitalWrite(13, LOW);
 	pinMode(pin_shoot, OUTPUT);
 	digitalWrite(pin_shoot, LOW);
 }
@@ -170,6 +172,7 @@ void move(float vel_mm_sec, microstepping_t stepping_mode){
 //setup the shoot hardware
 void shoot(unsigned int shoot_period_ms){
 	/*set pins*/
+	digitalWrite(13, LOW);
 	digitalWrite(pin_shoot, LOW);
 	shooting_period_ms=shoot_period_ms;
 }
@@ -198,18 +201,20 @@ bool step_if_due(unsigned long period_ms){
 }
 
 //exec a shoot. return true if shooting_period_ms is elapsed from the first activation 
-bool counting_time=0;
+bool counting_time=false;
 bool keep_shooting_if_due(unsigned long shooting_period_ms){
 	if(!counting_time){
 		counting_time=true;
+		pinMode(13, HIGH);			//trigger (and keep triggering) camera
 		pinMode(pin_shoot, HIGH);			//trigger (and keep triggering) camera
 		last_activation_ms=millis();
 	}
 
 	unsigned long elapsed = count_elapsed(last_activation_ms, millis());
 	if(elapsed>shooting_period_ms){
+		pinMode(13, LOW);			//trigger (and keep triggering) camera
 		pinMode(pin_shoot, LOW);			//stop triggering camera
-		counting_time=0;
+		counting_time=false;
 	}
 	
 	return counting_time;
