@@ -21,8 +21,8 @@
 
 
 #include "LCD16x2.h"
-//#include "../Wire/Wire.h"
-#include "I2C.h"
+#include "../Wire/Wire.h"
+
 
 /**
  * Default constructor.
@@ -30,14 +30,18 @@
 LCD16x2::LCD16x2(){
     X = 0;
     Y = 1;
-    I2c.begin();
+    for(int i=0; i<32; ++i){
+        buffer[i]=0;
+    }
+
+    last_time=millis();
+    pos=0;
 }
 
 /**
  * Default destructor.
  */
 LCD16x2::~LCD16x2(){
-    I2c.end();
 }
 
 /**
@@ -47,51 +51,45 @@ LCD16x2::~LCD16x2(){
  */
 uint8_t LCD16x2::getID(){
     uint8_t id = 0;
-
-/*    
+    
     Wire.beginTransmission(ADDRESS);
     Wire.write(GET_ID);
     Wire.endTransmission();
     Wire.requestFrom((int)ADDRESS, 1);
     while(Wire.available() > 0)
         id = Wire.read();
-*/
-
+      
     return id;
 }
 
 void LCD16x2::lcdSetBlacklight(uint8_t value){
-/*	Wire.beginTransmission(ADDRESS);
+	Wire.beginTransmission(ADDRESS);
 	Wire.write(SET_BL);
 	Wire.write(value);
 	Wire.endTransmission();
-*/
-    I2c.write(ADDRESS, SET_BL, value);
 }
-
 void LCD16x2::uartEnable(bool state){
-/*    uint8_t en;
+    uint8_t en;
     if(state == true)
         en = 0x01;
     else
         en = 0x00;
-
+    
     Wire.beginTransmission(ADDRESS);
     Wire.write(UART_EN);
     Wire.write(en);
     Wire.endTransmission();
-    */
 }
 uint8_t LCD16x2::getFirmwareVersion(){
     uint8_t firm = 0;
-/*  
+    
     Wire.beginTransmission(ADDRESS);
     Wire.write(GET_FRM);
     Wire.endTransmission();
     Wire.requestFrom((int)ADDRESS, 1);
     while(Wire.available() > 0)
         firm = Wire.read();
-*/
+    
     return firm;
 }
 /**
@@ -100,13 +98,12 @@ uint8_t LCD16x2::getFirmwareVersion(){
  * @param direction     The direction of the GPIO: OUTPUT or INPUT.
  */
 void LCD16x2::pinMode(uint8_t pin, uint8_t direction){
-/*    
+    
     Wire.beginTransmission(ADDRESS);
     Wire.write(SET_TRIS);
     Wire.write(pin);
     Wire.write(!direction);
     Wire.endTransmission();
-    */
 }
 
 /**
@@ -117,13 +114,12 @@ void LCD16x2::pinMode(uint8_t pin, uint8_t direction){
  * @param level The output level: HIGH or LOW
  */
 void LCD16x2::digitalWrite(uint8_t pin, uint8_t level){
-/*    
+    
     Wire.beginTransmission(ADDRESS);
     Wire.write(SET_LAT);
     Wire.write(pin);
     Wire.write(level);
     Wire.endTransmission();
-    */
 }
 
 /**
@@ -133,7 +129,7 @@ void LCD16x2::digitalWrite(uint8_t pin, uint8_t level){
  */
 uint8_t LCD16x2::digitalRead(uint8_t pin){
     uint8_t port;
-/*    
+    
     Wire.beginTransmission(ADDRESS);
     Wire.write(GET_PORT);
     Wire.write(pin);
@@ -141,7 +137,7 @@ uint8_t LCD16x2::digitalRead(uint8_t pin){
     Wire.requestFrom((int)ADDRESS, 1);
     while(Wire.available() > 0)
         port = Wire.read();
-*/    
+    
     return port;
 }
 
@@ -150,23 +146,16 @@ uint8_t LCD16x2::digitalRead(uint8_t pin){
  * @return      Bitmask with the 4 values: LSB - BUT1, MSB - BUT4
  */
 uint8_t LCD16x2::readButtons(){
+    if((millis() - last_time) < 42) return 0xff;
     uint8_t buttons;
-/*    
+    
     Wire.beginTransmission(ADDRESS);
     Wire.write(GET_BUT);
     Wire.endTransmission();
     Wire.requestFrom((int)ADDRESS, 1);
-    Serial.println(Wire.available());
     while(Wire.available() > 0)
         buttons = Wire.read();
-*/
-    I2c.write(ADDRESS, GET_BUT);
-    Serial.print("status: ");
 
-    Serial.println(I2c.read(ADDRESS, 1));
-    buttons=I2c.receive();
-    Serial.print("buttons: ");
-    Serial.println(buttons);
     return buttons;
 }
 
@@ -174,12 +163,14 @@ uint8_t LCD16x2::readButtons(){
  * Clear the LCD screen.
  */
 void LCD16x2::lcdClear(){
-    /*
+
+    for (int i=0; i<32; i++){
+        buffer[i]=0;
+    }
+    buffer_empty=true;
     Wire.beginTransmission(ADDRESS);
     Wire.write(LCD_CLR);
     Wire.endTransmission();
-    */
-    I2c.write(ADDRESS, LCD_CLR);
     delay(100);
 }
 
@@ -199,6 +190,54 @@ void LCD16x2::lcdGoToXY(uint8_t x, uint8_t y){
     Y = y;
 }
 
+
+void LCD16x2::lcdUpdate(){
+    if(buffer_empty || (millis()-last_time )< 22) return;
+    
+    bool found=false;
+    int i=0;
+    while(!found && i<32){
+        i++;
+        uint8_t val=buffer[pos];
+
+        if(val!=0){
+            found=true;
+            buffer[pos]=0;
+            int x, y;
+            y= (pos<16)? 1: 2;
+            x=pos%16;
+            trasmitchar(x, y, val);   
+        }
+        pos++;
+        pos=pos%32;
+    }
+
+    buffer_empty=true;
+    for(int j=0; j<32; j++){
+        if(buffer[j]!=0){
+            buffer_empty=false;
+            break;
+        }
+    }
+
+    last_time=millis();
+}
+
+void LCD16x2::trasmitchar(uint8_t x, uint8_t y, char val){
+    if(x > 15 || y>2) return;
+    Wire.beginTransmission(ADDRESS);
+    Wire.write(LCD_WR);
+    Wire.write(y);
+    Wire.write(x);
+    Wire.write(val);
+    Wire.endTransmission();
+}
+
+void LCD16x2::pushChar(uint8_t x, uint8_t y, char val){
+    uint8_t pos = (x) + (y-1)*16;
+    buffer[pos]= val; 
+    buffer_empty=false;
+}
 /**
  * Write string to the LCD screen.
  * @param string        String to be written.
@@ -211,18 +250,7 @@ void LCD16x2::lcdWrite(char* string){
     
     len = strlen(string);
     for(int i = 0; i < len; i++){
-        uint8_t data[3];
-/*        Wire.beginTransmission(ADDRESS);
-        Wire.write(LCD_WR);
-        Wire.write(y);
-        Wire.write(x);
-        Wire.write(string[i]);
-        Wire.endTransmission();
-*/
-        data[0]=y;
-        data[1]=x;
-        data[2]=string[i];
-        I2c.write(ADDRESS, LCD_WR, data, 3);
+        pushChar(x, y, string[i]);        
         x++;  
         if(x > 15){
             x = 0;
@@ -230,11 +258,10 @@ void LCD16x2::lcdWrite(char* string){
             if(y > 2)
                 return;
         }
-        delay(20);      
     }
 }
 
-/*
+
 void LCD16x2::lcdWrite(const char* string, unsigned int window, unsigned int offset){
     unsigned int len= strlen(string);
     offset= offset % len;
@@ -246,13 +273,8 @@ void LCD16x2::lcdWrite(const char* string, unsigned int window, unsigned int off
 
     //prima parte
     for(int i = offset; i < (limit + offset); i++){
-        Wire.beginTransmission(ADDRESS);
-        Wire.write(LCD_WR);
-        Wire.write(y);
-        Wire.write(x);
-        Wire.write(string[i]);
-        Wire.endTransmission();
-        
+        pushChar(x, y, string[i]);        
+
         x++;  
         if(x > 15){
             x = 0;
@@ -260,19 +282,12 @@ void LCD16x2::lcdWrite(const char* string, unsigned int window, unsigned int off
             if(y > 2)
                 return;
         }
-        delay(20);      
     }
 
     //seconda parte
     if(limit!= window){
         for(int i = 0; i < (window - limit ); i++){
-            Wire.beginTransmission(ADDRESS);
-            Wire.write(LCD_WR);
-            Wire.write(y);
-            Wire.write(x);
-            Wire.write(string[i]);
-            Wire.endTransmission();
-            
+            pushChar(x, y, string[i]);       
             x++;  
             if(x > 15){
                 x = 0;
@@ -280,7 +295,6 @@ void LCD16x2::lcdWrite(const char* string, unsigned int window, unsigned int off
                 if(y > 2)
                     return;
             }
-            delay(20);
 
 
 
@@ -288,4 +302,3 @@ void LCD16x2::lcdWrite(const char* string, unsigned int window, unsigned int off
 
     }
 }
-*/

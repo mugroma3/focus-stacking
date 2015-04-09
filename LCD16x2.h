@@ -47,6 +47,8 @@ class LCD16x2{
 
         void lcdWrite(const char *string, unsigned int window, unsigned int offset);
         
+        void lcdUpdate();   
+
         const static uint8_t GPIO1 = 1;
         const static uint8_t GPIO2 = 2;
         const static uint8_t GPIO3 = 3;
@@ -58,7 +60,14 @@ class LCD16x2{
         const static uint8_t GPIO9 = 9;        
         
     private:
+        void trasmitchar(uint8_t x, uint8_t y, char val);
+        void pushChar(uint8_t x, uint8_t y, char val);
+
+        unsigned long last_time;
+        uint8_t pos;
         uint8_t X;
         uint8_t Y;
+        uint8_t buffer[32];
+        bool buffer_empty=true;
 };
 #endif
