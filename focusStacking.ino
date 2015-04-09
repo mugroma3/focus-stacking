@@ -53,7 +53,7 @@ void setupCamera(){
 //how many shoots are to be done
 unsigned int shoot_to_be_done;
 //how many microsteps must be done between shoots 
-unsigned int steps_for_picture;
+//unsigned int steps_for_picture;
 //how many ms must be elapsed before issuing the next microstep
 unsigned long stepping_period_ms;
 //how long is each picture taken 
@@ -61,9 +61,12 @@ unsigned long shooting_period_ms;
 //gratuitus delay time
 unsigned long delay_period_ms;
 
-//how many steps in this train are done
-unsigned int steps_done;
-
+//how many microsteps must be done between shoots, plus dithering
+struct 
+{
+	float actual_value;
+	float error;
+} steps_for_picture;
 
 
 /*
@@ -73,13 +76,13 @@ unsigned int steps_done;
 
 //linear move in the home direction
 void move_home(){
-	move(-10, QUARTER);
+	move(-10, microstep_mode);
 	current_h_action = MOVE;
 }
 
 //linear move in the end direction
 void move_end(){
-	move(10, QUARTER);
+	move(10, microstep_mode);
 	current_h_action = MOVE;
 }
 
@@ -87,18 +90,51 @@ void move_end(){
 //const float step_length[] = {(3./20.), (3./20.)/(1<< HALF), (3./20.)/(1<< QUARTER), (3./20.)/(1<<EIGHTH), (3./20.)/(1<<SIXTEENTH)};
 const float step_length[] = {0.18, 0.18/(1<< HALF), 0.18/(1<< QUARTER), 0.18/(1<<EIGHTH), 0.18/(1<<SIXTEENTH)};
 
+/*
 //setup the main use case and initiate it
 void step_and_shoot(unsigned int shoots, unsigned int exp_ms, unsigned int mm, unsigned int delay_ms){
-	move(5, QUARTER);
+	move(5, microstep_mode);
 	shoot(exp_ms);
 	shoot_to_be_done=shoots;
+
+
 	float mm_picture =(shoots>1)? ((float) mm )/(shoots -1): 0;
 	steps_for_picture=(unsigned int)floor(mm_picture/step_length[QUARTER]);
+
+	unsigned long total_steps= (long) mm / step_length[QUARTER];
+	unsigned long min_steps_p = total_steps/(shoots - 1);
+	unsigned long rem = total_step % (shoots - 1);
+
 
 	delay_period_ms=delay_ms;
 	current_h_action = STEP_AND_SHOOT_FASE_1;
 }
+*/
 
+//setup the main use case and initiate it
+void step_and_shoot(unsigned int shoots, unsigned int exp_ms, unsigned int mm, unsigned int delay_ms){
+	move(5, microstep_mode);
+	shoot(exp_ms);
+	shoot_to_be_done=shoots;
+	delay_period_ms=delay_ms;
+
+	float total_steps= mm / step_length[QUARTER];
+
+	steps_for_picture= {total_steps/(shoots-1), 0};
+	
+	current_h_action = STEP_AND_SHOOT_FASE_1;
+}
+
+
+unsigned int get_steps(){
+
+	steps_for_picture;
+
+	unsigned int s= (unsigned int) floor(steps_for_picture.actual_value + steps_for_picture.error);
+
+	steps_for_picture.error = steps_for_picture.actual_value + steps_for_picture.error - s;
+	return s; 
+}
 //stop every action
 void stop(){
 	digitalWrite(pin_enable, HIGH); //disable motor
@@ -619,6 +655,10 @@ void setup() {
 }
 
 void loop() {
+
+	//how many steps in this train are done
+	static unsigned int steps_to_be_done=0;
+
 	// hardware actions
 	switch(current_h_action){
 		case MOVE:			//generic moving movement. never end alone
@@ -628,7 +668,7 @@ void loop() {
 			if(!keep_shooting_if_due(shooting_period_ms)){
 				shoot_to_be_done--;
 				if(shoot_to_be_done>0){		//if there are more shoots, transition to fase2
-					steps_done=steps_for_picture;				
+					steps_to_be_done= get_steps();				
 					current_h_action=STEP_AND_SHOOT_FASE_2;
 				}else{							//otherwise, stop.
 					current_h_action=NONE;
@@ -637,8 +677,8 @@ void loop() {
 			break;
 		case STEP_AND_SHOOT_FASE_2:				//fase 2 of main use case. try to issue a microstep (waiting the right amount of time). if successful, decrement the number of steps to be taken
 			if(step_if_due(stepping_period_ms)){
-				steps_done--;
-				if(steps_done==0){				//and goto to fase 1 if no more steps are to be taken
+				steps_to_be_done--;
+				if(steps_to_be_done==0){				//and goto to fase 1 if no more steps are to be taken
 					current_h_action=STEP_AND_SHOOT_FASE_3;
 				}
 			}

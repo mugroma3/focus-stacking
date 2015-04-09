@@ -22,3 +22,6 @@ exposition_param {"ms ExpTime", "ms exp  ", 0, 10, NUM_SHOOTS, MM_CAPTURE},
 mm_param{"mm Capture", "mm capt ", 0, 1,ESPOSITION_TIME, DELAY_SHOT}, 
 delay_param{"ms Delay", "ms delay", 0, 10,MM_CAPTURE, START_CAPTURE};
 
+
+
+const microstepping_t microstep_mode= QUARTER;
