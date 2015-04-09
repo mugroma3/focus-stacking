@@ -24,4 +24,4 @@ delay_param{"ms Delay", "ms delay", 0, 10, ESPOSITION_TIME, START_CAPTURE};
 
 
 
-const microstepping_t microstep_mode= SIXTEENTH;
+const microstepping_t microstep_mode= QUARTER;
