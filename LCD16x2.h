@@ -43,7 +43,7 @@ class LCD16x2{
 		void lcdSetBlacklight(uint8_t value);
         void lcdClear();
         void lcdGoToXY(uint8_t x, uint8_t y);
-        void lcdWrite(char *string);
+        void lcdWrite(const char *string);
 
         void lcdWrite(const char *string, unsigned int window, unsigned int offset);
         

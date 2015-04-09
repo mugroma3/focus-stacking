@@ -242,7 +242,7 @@ void LCD16x2::pushChar(uint8_t x, uint8_t y, char val){
  * Write string to the LCD screen.
  * @param string        String to be written.
  */
-void LCD16x2::lcdWrite(char* string){
+void LCD16x2::lcdWrite(const char* string){
     uint8_t len;
     uint8_t x, y;
     x = X;
