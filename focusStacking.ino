@@ -326,7 +326,7 @@ void move_screen(){
 			}
 
 			if(but_num==4){
-				current_menu=NUM_SHOOTS;
+				current_menu=MM_CAPTURE;
 				enteringState=true;
 			}
 
@@ -471,7 +471,7 @@ void start_capture_screen(){
 	static bool enteringState=true;
 	static int but_num=0;
 	static unsigned int counter=0;
-	static display_menu_t start_capture_current_value=NUM_SHOOTS;
+	static display_menu_t start_capture_current_value=MM_CAPTURE;
 
 	if(enteringState){
 		lcd.lcdClear();
@@ -486,7 +486,7 @@ void start_capture_screen(){
 		lcd.lcdWrite(rightArrow);
 		enteringState=false;
 		counter=0;
-		start_capture_current_value=NUM_SHOOTS;
+		start_capture_current_value=MM_CAPTURE;
 
 		scs_printval(&shoots_param);
 	}
@@ -509,7 +509,7 @@ void start_capture_screen(){
 			break;
 			case DELAY_SHOT:
 				p=&delay_param;
-				start_capture_current_value=NUM_SHOOTS;
+				start_capture_current_value=MM_CAPTURE;
 			break;
 			default:
 			break;
@@ -669,7 +669,7 @@ void loop() {
 				shoot_to_be_done--;
 				if(shoot_to_be_done>0){		//if there are more shoots, transition to fase2
 					steps_to_be_done= get_steps();				
-					current_h_action=STEP_AND_SHOOT_FASE_2;
+					current_h_action=STEP_AND_SHOOT_FASE_3A;
 				}else{							//otherwise, stop.
 					current_h_action=NONE;
 				}
@@ -679,13 +679,19 @@ void loop() {
 			if(step_if_due(stepping_period_ms)){
 				steps_to_be_done--;
 				if(steps_to_be_done==0){				//and goto to fase 1 if no more steps are to be taken
-					current_h_action=STEP_AND_SHOOT_FASE_3;
+					current_h_action=STEP_AND_SHOOT_FASE_3B;
 				}
 			}
 			break;
 
-		case STEP_AND_SHOOT_FASE_3: 			//fase 3: wait delay ms to give the camera a chance to be ready
-			if(delay_elapsed(delay_period_ms)){
+		case STEP_AND_SHOOT_FASE_3A: 			//fase 3: wait delay ms to give the camera a chance to be ready
+			if(delay_elapsed(delay_period_ms/2)){
+				current_h_action=STEP_AND_SHOOT_FASE_2;
+			}
+			break;
+
+		case STEP_AND_SHOOT_FASE_3B: 			//fase 3: wait delay ms to give the camera a chance to be ready
+			if(delay_elapsed(delay_period_ms/2)){
 				current_h_action=STEP_AND_SHOOT_FASE_1;
 			}
 			break;
