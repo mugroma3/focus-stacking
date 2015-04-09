@@ -4,7 +4,7 @@ enum microstepping_t {SINGLE=0, HALF=1, QUARTER=2, EIGHTH=3, SIXTEENTH=4};
 //in which state the hardware-controlling state machine can be in
 enum hardware_action_t {NONE, MOVE, STEP_AND_SHOOT_FASE_1, STEP_AND_SHOOT_FASE_2, STEP_AND_SHOOT_FASE_3};
 
-enum display_menu_t {MAIN_SCREEN, NUM_SHOOTS, ESPOSITION_TIME, MM_CAPTURE, DELAY_SHOT, START_CAPTURE, CAPTURING};
+enum display_menu_t {MOVE_SCREEN, NUM_SHOOTS, ESPOSITION_TIME, MM_CAPTURE, DELAY_SHOT, START_CAPTURE, CAPTURING};
 
 
 
