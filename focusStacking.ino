@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include "Additional.h"
 #include <Wire.h>
+#include <EEPROM.h>
 
 //in which state the hardware-controlling state machine is in now
 hardware_action_t current_h_action = NONE;
@@ -376,6 +377,7 @@ void single_param_screen(param_display* p){
 	static unsigned int counter=0;
 
 	if(enteringState){
+		EEPROM.get(p->save_addr, p->val);
 		lcd.lcdClear();
 		sps_printval(p->val);
 		lcd.lcdGoToXY(7,1);
@@ -389,7 +391,7 @@ void single_param_screen(param_display* p){
 		lcd.lcdGoToXY(16,2);
 		lcd.lcdWrite(rightArrow);
 
-		enteringState=0;
+		enteringState=false;
 	}
 
 	counter++;
@@ -404,11 +406,13 @@ void single_param_screen(param_display* p){
 			//changeScreen shoots
 			if(but_num==3){
 				current_menu=p->prev;
+				EEPROM.put(p->save_addr, p->val);
 				enteringState=true;
 			}
 
 			if(but_num==4){
 				current_menu=p->next;
+				EEPROM.put(p->save_addr, p->val);
 				enteringState=true;
 			}
 

@@ -15,12 +15,13 @@ struct param_display{
 	unsigned int inc;
 	display_menu_t prev;
 	display_menu_t next;
+	const int save_addr;
 };
 
-struct param_display mm_param{"mm Capture", "mm capt ", 0, 1, MOVE_SCREEN, NUM_SHOOTS}, 
-shoots_param {"Shoots", "#shoots ", 0, 1, MM_CAPTURE, ESPOSITION_TIME}, 
-exposition_param {"ms ExpTime", "ms exp  ", 0, 10, NUM_SHOOTS, DELAY_SHOT}, 
-delay_param{"ms Delay", "ms delay", 0, 10, ESPOSITION_TIME, START_CAPTURE};
+struct param_display mm_param{"mm Capture", "mm capt ", 0, 1, MOVE_SCREEN, NUM_SHOOTS, 10}, 
+shoots_param {"Shoots", "#shoots ", 0, 1, MM_CAPTURE, ESPOSITION_TIME, 21}, 
+exposition_param {"ms ExpTime", "ms exp  ", 0, 10, NUM_SHOOTS, DELAY_SHOT, 32}, 
+delay_param{"ms Delay", "ms delay", 0, 10, ESPOSITION_TIME, START_CAPTURE, 43};
 
 
 
